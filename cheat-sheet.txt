@@ -1,0 +1,2 @@
+python train.py --dataset coco --coco_path /mnt/coco --depth 50
+

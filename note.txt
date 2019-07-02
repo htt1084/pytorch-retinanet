@@ -1,0 +1,3 @@
+# 07-02-2019
+- Repo works right away on pytorch 0.4.1, pip requirement is at requirements_0.4.txt
+- Training on COCO 2014
