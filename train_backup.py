@@ -74,7 +74,11 @@ def main(args=None):
 	else:
 		raise ValueError('Dataset type not understood (must be csv or coco), exiting.')
 
+<<<<<<< HEAD
+	sampler = AspectRatioBasedSampler(dataset_train, batch_size=8, drop_last=False)
+=======
 	sampler = AspectRatioBasedSampler(dataset_train, batch_size=2, drop_last=False)
+>>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7
 	dataloader_train = DataLoader(dataset_train, num_workers=3, collate_fn=collater, batch_sampler=sampler)
 
 	if dataset_val is not None:
@@ -123,9 +127,12 @@ def main(args=None):
 		epoch_loss = []
 		
 		for iter_num, data in enumerate(dataloader_train):
-			retinanet.train()
-			retinanet.module.freeze_bn()
 			try:
+<<<<<<< HEAD
+				retinanet.train()
+				retinanet.module.freeze_bn()
+=======
+>>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7
 				optimizer.zero_grad()
 
 				classification_loss, regression_loss = retinanet([data['img'].cuda().float(), data['annot']])
@@ -155,20 +162,44 @@ def main(args=None):
 			except Exception as e:
 				print(e)
 				continue
-			if iter_num % 10 == 0:
-		        	if parser.dataset == 'coco':
 
-			        	print('Evaluating dataset')
+<<<<<<< HEAD
+			if iter_num > 0 and iter_num % 1000 == 0:
+				if parser.dataset == 'coco':
 
-			        	coco_eval.evaluate_coco(dataset_val, retinanet)
+					print('Evaluating dataset')
 
-		        	elif parser.dataset == 'csv' and parser.csv_val is not None:
-			        	print('Evaluating dataset')
-					#mAP = csv_eval.evaluate(dataset_val, retinanet)
-                                #scheduler.step(np.mean(epoch_loss))
-				#torch.save(retinanet.module, '{}_retinanet_{}_{}.pt'.format(parser.dataset, epoch_num, iter_num))
-                                print('tung')
-                                
+					coco_eval.evaluate_coco(dataset_val, retinanet)
+
+				elif parser.dataset == 'csv' and parser.csv_val is not None:
+
+					print('Evaluating dataset')
+
+					mAP = csv_eval.evaluate(dataset_val, retinanet)
+
+		
+				scheduler.step(np.mean(epoch_loss))	
+
+				torch.save(retinanet.module, '{}_retinanet_{}_{}.pt'.format(parser.dataset, epoch_num, iter_num))
+=======
+		if parser.dataset == 'coco':
+
+			print('Evaluating dataset')
+
+			coco_eval.evaluate_coco(dataset_val, retinanet)
+
+		elif parser.dataset == 'csv' and parser.csv_val is not None:
+
+			print('Evaluating dataset')
+
+			mAP = csv_eval.evaluate(dataset_val, retinanet)
+
+		
+		scheduler.step(np.mean(epoch_loss))	
+
+		torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
+>>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7
+
 	retinanet.eval()
 
 	torch.save(retinanet, 'model_final.pt'.format(epoch_num))

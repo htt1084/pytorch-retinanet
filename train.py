@@ -24,6 +24,7 @@ from torch.utils.data import Dataset, DataLoader
 
 import coco_eval
 import csv_eval
+from tensorboardX import SummaryWriter
 
 assert torch.__version__.split('.')[1] == '4'
 
@@ -74,11 +75,7 @@ def main(args=None):
 	else:
 		raise ValueError('Dataset type not understood (must be csv or coco), exiting.')
 
-<<<<<<< HEAD
-	sampler = AspectRatioBasedSampler(dataset_train, batch_size=8, drop_last=False)
-=======
 	sampler = AspectRatioBasedSampler(dataset_train, batch_size=2, drop_last=False)
->>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7
 	dataloader_train = DataLoader(dataset_train, num_workers=3, collate_fn=collater, batch_sampler=sampler)
 
 	if dataset_val is not None:
@@ -97,7 +94,10 @@ def main(args=None):
 	elif parser.depth == 152:
 		retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=True)
 	else:
-		raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')		
+		raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')
+
+	train_logger = SummaryWriter(log_dir = os.path.join('work', 'train'), comment='training')
+#        validation_logger = SummaryWriter(log_dir = os.path.join('work', 'validation'), comment='validation')
 
 	use_gpu = True
 
@@ -125,14 +125,12 @@ def main(args=None):
 		retinanet.module.freeze_bn()
 		
 		epoch_loss = []
-		
+		total_iter_batch = len(dataloader_train)
+		print(total_iter_batch)
 		for iter_num, data in enumerate(dataloader_train):
 			try:
-<<<<<<< HEAD
 				retinanet.train()
 				retinanet.module.freeze_bn()
-=======
->>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7
 				optimizer.zero_grad()
 
 				classification_loss, regression_loss = retinanet([data['img'].cuda().float(), data['annot']])
@@ -154,7 +152,7 @@ def main(args=None):
 				loss_hist.append(float(loss))
 
 				epoch_loss.append(float(loss))
-
+				train_logger.add_scalar('training loss', float(loss), epoch_num*total_iter_bach+iter_num) 
 				print('Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist)))
 				
 				del classification_loss
@@ -163,7 +161,6 @@ def main(args=None):
 				print(e)
 				continue
 
-<<<<<<< HEAD
 			if iter_num > 0 and iter_num % 1000 == 0:
 				if parser.dataset == 'coco':
 
@@ -181,7 +178,6 @@ def main(args=None):
 				scheduler.step(np.mean(epoch_loss))	
 
 				torch.save(retinanet.module, '{}_retinanet_{}_{}.pt'.format(parser.dataset, epoch_num, iter_num))
-=======
 		if parser.dataset == 'coco':
 
 			print('Evaluating dataset')
@@ -198,7 +194,6 @@ def main(args=None):
 		scheduler.step(np.mean(epoch_loss))	
 
 		torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
->>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7
 
 	retinanet.eval()
 
