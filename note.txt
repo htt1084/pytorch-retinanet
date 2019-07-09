@@ -1,0 +1,11 @@
+# 07-02-2019
+- Repo works right away on pytorch 0.4.1, pip requirement is at requirements_0.4.txt
+- Training on COCO 2014
+
+# 07-07-2019
+- Training takes 6 hours for 1 epoch.
+- mAP ~ 45% after 10 epochs, resnet50 backbone. 
+- Validation is very slow as well compared to darknet => should evaluate every 4 epochs instead
+
+- Train Person dataset
+

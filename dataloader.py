@@ -2,7 +2,6 @@ from __future__ import print_function, division
 import sys
 import os
 import torch
-import pandas as pd
 import numpy as np
 import random
 import csv
@@ -93,6 +92,7 @@ class CocoDataset(Dataset):
         # parse annotations
         coco_annotations = self.coco.loadAnns(annotations_ids)
         for idx, a in enumerate(coco_annotations):
+
             # some annotations have basically no width / height, skip them
             if a['bbox'][2] < 1 or a['bbox'][3] < 1:
                 continue
@@ -155,9 +155,6 @@ class CSVDataset(Dataset):
         except ValueError as e:
             raise_from(ValueError('invalid CSV annotations file: {}: {}'.format(self.train_file, e)), None)
         self.image_names = list(self.image_data.keys())
-
-        #import pdb
-        #pdb.set_trace()
 
     def _parse(self, value, function, fmt):
         """
@@ -322,9 +319,24 @@ def collater(data):
         img = imgs[i]
         padded_imgs[i, :int(img.shape[0]), :int(img.shape[1]), :] = img
 
+    max_num_annots = max(annot.shape[0] for annot in annots)
+    
+    if max_num_annots > 0:
+
+        annot_padded = torch.ones((len(annots), max_num_annots, 5)) * -1
+
+        if max_num_annots > 0:
+            for idx, annot in enumerate(annots):
+                #print(annot.shape)
+                if annot.shape[0] > 0:
+                    annot_padded[idx, :annot.shape[0], :] = annot
+    else:
+        annot_padded = torch.ones((len(annots), 1, 5)) * -1
+
+
     padded_imgs = padded_imgs.permute(0, 3, 1, 2)
 
-    return {'img': padded_imgs, 'annot': annots, 'scale': scales}
+    return {'img': padded_imgs, 'annot': annot_padded, 'scale': scales}
 
 class Resizer(object):
     """Convert ndarrays in sample to Tensors."""
@@ -435,9 +447,9 @@ class AspectRatioBasedSampler(Sampler):
 
     def __len__(self):
         if self.drop_last:
-            return len(self.sampler) // self.batch_size
+            return len(self.data_source) // self.batch_size
         else:
-            return (len(self.sampler) + self.batch_size - 1) // self.batch_size
+            return (len(self.data_source) + self.batch_size - 1) // self.batch_size
 
     def group_images(self):
         # determine the order of the images
