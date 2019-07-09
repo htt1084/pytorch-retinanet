@@ -1,5 +1,8 @@
 *.zip
 *.pt
 *.pth
+<<<<<<< HEAD
 resnet50-19c8e357.pth
 val2014_bbox_results.json
+=======
+>>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7

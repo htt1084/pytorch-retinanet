@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Train
 python train.py --dataset coco --coco_path /mnt/coco --depth 50
 
@@ -10,3 +11,7 @@ python evaluate.py --dataset csv --csv_classes person_class_list.csv --csv_val p
 # Visualize
 python visualize.py --dataset coco --coco_path /mnt/coco --model ./checkpoints/coco_retinanet_12_20000.pt
 
+=======
+python train.py --dataset coco --coco_path /mnt/coco --depth 50
+
+>>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7

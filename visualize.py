@@ -35,7 +35,11 @@ def main(args=None):
 	parser = parser.parse_args(args)
 
 	if parser.dataset == 'coco':
+<<<<<<< HEAD
 		dataset_val = CocoDataset(parser.coco_path, set_name='val2014', transform=transforms.Compose([Normalizer(), Resizer()]))
+=======
+		dataset_val = CocoDataset(parser.coco_path, set_name='val2017', transform=transforms.Compose([Normalizer(), Resizer()]))
+>>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7
 	elif parser.dataset == 'csv':
 		dataset_val = CSVDataset(train_file=parser.csv_train, class_list=parser.csv_classes, transform=transforms.Compose([Normalizer(), Resizer()]))
 	else:
@@ -95,4 +99,8 @@ def main(args=None):
 
 
 if __name__ == '__main__':
+<<<<<<< HEAD
  main()
+=======
+ main()
+>>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7
