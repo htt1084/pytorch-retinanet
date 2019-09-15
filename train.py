@@ -26,7 +26,7 @@ import coco_eval
 import csv_eval
 from tensorboardX import SummaryWriter
 
-assert torch.__version__.split('.')[1] == '4'
+#assert torch.__version__.split('.')[1] == '4'
 
 print('CUDA available: {}'.format(torch.cuda.is_available()))
 
@@ -40,9 +40,10 @@ def main(args=None):
 	parser.add_argument('--csv_train', help='Path to file containing training annotations (see readme)')
 	parser.add_argument('--csv_classes', help='Path to file containing class list (see readme)')
 	parser.add_argument('--csv_val', help='Path to file containing validation annotations (optional, see readme)')
-
+	parser.add_argument('--model_name', help='Name of the model', required=True)
+	parser.add_argument('--resume', help='Path to resumed weight')
 	parser.add_argument('--depth', help='Resnet depth, must be one of 18, 34, 50, 101, 152', type=int, default=50)
-	parser.add_argument('--epochs', help='Number of epochs', type=int, default=100)
+	parser.add_argument('--epochs', help='Number of epochs', type=int, default=20)
 
 	parser = parser.parse_args(args)
 
@@ -75,29 +76,33 @@ def main(args=None):
 	else:
 		raise ValueError('Dataset type not understood (must be csv or coco), exiting.')
 
-	sampler = AspectRatioBasedSampler(dataset_train, batch_size=2, drop_last=False)
-	dataloader_train = DataLoader(dataset_train, num_workers=3, collate_fn=collater, batch_sampler=sampler)
+	sampler = AspectRatioBasedSampler(dataset_train, batch_size=4, drop_last=False)
+	dataloader_train = DataLoader(dataset_train, num_workers=4, collate_fn=collater, batch_sampler=sampler)
 
 	if dataset_val is not None:
 		sampler_val = AspectRatioBasedSampler(dataset_val, batch_size=1, drop_last=False)
-		dataloader_val = DataLoader(dataset_val, num_workers=3, collate_fn=collater, batch_sampler=sampler_val)
+		dataloader_val = DataLoader(dataset_val, num_workers=4, collate_fn=collater, batch_sampler=sampler_val)
 
 	# Create the model
-	if parser.depth == 18:
-		retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True)
-	elif parser.depth == 34:
-		retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
-	elif parser.depth == 50:
-		retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)
-	elif parser.depth == 101:
-		retinanet = model.resnet101(num_classes=dataset_train.num_classes(), pretrained=True)
-	elif parser.depth == 152:
-		retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=True)
+	if parser.resume:
+		retinanet = torch.load(parser.resume)
 	else:
-		raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')
+		if parser.depth == 18:
+			retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True)
+		elif parser.depth == 34:
+			retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
+		elif parser.depth == 50:
+			retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)
+		elif parser.depth == 101:
+			retinanet = model.resnet101(num_classes=dataset_train.num_classes(), pretrained=True)
+		elif parser.depth == 152:
+			retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=True)
+		else:
+			raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')
 
-	train_logger = SummaryWriter(log_dir = os.path.join('work', 'train'), comment='training')
-#        validation_logger = SummaryWriter(log_dir = os.path.join('work', 'validation'), comment='validation')
+		
+	train_logger = SummaryWriter(log_dir = os.path.join('checkpoints', parser.model_name, 'train_log'), comment='training log')
+	validation_logger = SummaryWriter(log_dir = os.path.join('checkpoints', parser.model_name, 'validation_log'), comment='validation log')
 
 	use_gpu = True
 
@@ -118,6 +123,8 @@ def main(args=None):
 	retinanet.module.freeze_bn()
 
 	print('Num training images: {}'.format(len(dataset_train)))
+
+	last_mAP = 0
 
 	for epoch_num in range(parser.epochs):
 
@@ -152,7 +159,9 @@ def main(args=None):
 				loss_hist.append(float(loss))
 
 				epoch_loss.append(float(loss))
-				train_logger.add_scalar('training loss', float(loss), epoch_num*total_iter_bach+iter_num) 
+				train_logger.add_scalar('training loss', float(loss), epoch_num*total_iter_batch+iter_num) 
+				if last_mAP != 0:
+					print("Last validation mAP: " , last_mAP)
 				print('Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist)))
 				
 				del classification_loss
@@ -161,43 +170,31 @@ def main(args=None):
 				print(e)
 				continue
 
-			if iter_num > 0 and iter_num % 1000 == 0:
+			if iter_num > 0 and iter_num % 10000 == 0:
+				'''
 				if parser.dataset == 'coco':
-
 					print('Evaluating dataset')
-
 					coco_eval.evaluate_coco(dataset_val, retinanet)
-
 				elif parser.dataset == 'csv' and parser.csv_val is not None:
-
 					print('Evaluating dataset')
-
 					mAP = csv_eval.evaluate(dataset_val, retinanet)
-
-		
+				'''
 				scheduler.step(np.mean(epoch_loss))	
-
-				torch.save(retinanet.module, '{}_retinanet_{}_{}.pt'.format(parser.dataset, epoch_num, iter_num))
-		if parser.dataset == 'coco':
-
-			print('Evaluating dataset')
-
-			coco_eval.evaluate_coco(dataset_val, retinanet)
-
-		elif parser.dataset == 'csv' and parser.csv_val is not None:
-
-			print('Evaluating dataset')
-
-			mAP = csv_eval.evaluate(dataset_val, retinanet)
-
+				torch.save(retinanet.module, 'checkpoints/' + parser.model_name + '/{}_retinanet_{}_{}.pt'.format(parser.dataset, epoch_num, iter_num))
+		
+		if epoch_num > 0 and epoch_num % 4 == 0:
+			if parser.dataset == 'coco':
+				print('Evaluating dataset')
+				last_mAP = coco_eval.evaluate_coco(dataset_val, retinanet)
+			elif parser.dataset == 'csv' and parser.csv_val is not None:
+				print('Evaluating dataset')
+				mAP = csv_eval.evaluate(dataset_val, retinanet)
 		
 		scheduler.step(np.mean(epoch_loss))	
-
-		torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
+		torch.save(retinanet.module, 'checkpoints/' + parser.model_name + '/{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
 
 	retinanet.eval()
-
-	torch.save(retinanet, 'model_final.pt'.format(epoch_num))
+	torch.save(retinanet, 'checkpoints/' + parser.model_name + '/model_final.pt'.format(epoch_num))
 
 if __name__ == '__main__':
  main()

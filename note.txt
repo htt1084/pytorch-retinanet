@@ -1,7 +1,7 @@
+
 # 07-02-2019
 - Repo works right away on pytorch 0.4.1, pip requirement is at requirements_0.4.txt
 - Training on COCO 2014
-<<<<<<< HEAD
 
 # 07-07-2019
 - Training takes 6 hours for 1 epoch.
@@ -10,5 +10,7 @@
 
 - Train Person dataset
 
-=======
->>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7
+# 09-14-2019
+
+- Made repo works with pytorch 1.1.0 (1.2.0 has issue with ~ and 1 - bool)
+- Had to update with new nms (added to the repo)

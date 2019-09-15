@@ -1,0 +1,11 @@
+--- /usr/local/lib/python2.7/dist-packages/torch/nn/modules/container.py
++++ /usr/local/lib/python2.7/dist-packages/torch/nn/modules/container.py
+@@ -42,7 +42,7 @@
+ 
+     def __getitem__(self, idx):
+         if isinstance(idx, slice):
+-            return self.__class__(OrderedDict(list(self._modules.items())[idx]))
++            return Sequential(OrderedDict(list(self._modules.items())[idx]))
+         else:
+             return self._get_item_by_idx(self._modules.values(), idx)
+ 

@@ -1,17 +1,20 @@
-<<<<<<< HEAD
+
 # Train
 python train.py --dataset coco --coco_path /mnt/coco --depth 50
 
 python train.py --dataset csv --csv_train person_train.csv --csv_classes person_class_list.csv \
 --csv_val person_valid.csv --depth 50
 
+# Resume
+
+python train.py --dataset coco --coco_path data/coco --resume ./checkpoints/coco_retinanet_0_20000.pt --model_name exp1
+
 # Test
 python evaluate.py --dataset csv --csv_classes person_class_list.csv --csv_val person_test.csv --model csv_retinanet_10_2000.pt
  
 # Visualize
-python visualize.py --dataset coco --coco_path /mnt/coco --model ./checkpoints/coco_retinanet_12_20000.pt
+python visualize.py --dataset coco --coco_path /data/coco --model ./resnet50-19c8e357.pth
 
 =======
 python train.py --dataset coco --coco_path /mnt/coco --depth 50
 
->>>>>>> 266f4e1a7bc86d7663e70b83ec90290730b2b8a7

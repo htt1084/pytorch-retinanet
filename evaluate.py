@@ -25,7 +25,12 @@ from torch.utils.data import Dataset, DataLoader
 import coco_eval
 import csv_eval
 
-assert torch.__version__.split('.')[1] == '4'
+
+from functools import partial
+import pickle
+pickle.load = partial(pickle.load, encoding="latin1")
+pickle.Unpickler = partial(pickle.Unpickler, encoding="latin1")
+#assert torch.__version__.split('.')[1] == '4'
 
 print('CUDA available: {}'.format(torch.cuda.is_available()))
 
@@ -35,7 +40,7 @@ def main(args=None):
 	parser = argparse.ArgumentParser(description='Simple script for evaluating a RetinaNet network.')
 
 	parser.add_argument('--dataset', help='Dataset type, must be one of csv or coco.')
-	#parser.add_argument('--coco_path', help='Path to COCO directory')
+	parser.add_argument('--coco_path', help='Path to COCO directory')
 	#parser.add_argument('--csv_train', help='Path to file containing training annotations (see readme)')
 	parser.add_argument('--csv_classes', help='Path to file containing class list (see readme)')
 	parser.add_argument('--csv_val', help='Path to file containing validation annotations (optional, see readme)')
@@ -43,8 +48,16 @@ def main(args=None):
 
 	parser = parser.parse_args(args)
 
-	if parser.dataset == 'csv':
 
+	if parser.dataset == 'coco':
+
+		if parser.coco_path is None:
+			raise ValueError('Must provide --coco_path when training on COCO,')
+
+		#dataset_train = CocoDataset(parser.coco_path, set_name='train2014', transform=transforms.Compose([Normalizer(), Augmenter(), Resizer()]))
+		dataset_val = CocoDataset(parser.coco_path, set_name='val2014', transform=transforms.Compose([Normalizer(), Resizer()]))
+
+	elif parser.dataset == 'csv':
 		if parser.csv_classes is None:
 			raise ValueError('Must provide --csv_classes when training on COCO,')
 
@@ -64,7 +77,9 @@ def main(args=None):
 		dataloader_val = DataLoader(dataset_val, num_workers=3, collate_fn=collater, batch_sampler=sampler_val)
 
 	# Load the model		
-	retinanet = torch.load(parser.model)
+	#retinanet = torch.load(parser.model)
+	retinanet = torch.load(parser.model, map_location=lambda storage, loc: storage, pickle_module=pickle)
+
 	print(retinanet)
 	use_gpu = True
 

@@ -1,0 +1,76 @@
+--- /home/gmautomap/develop/yann/pytorch-retinanet/model.py
++++ /home/gmautomap/develop/yann/pytorch-retinanet/model.py
+@@ -1,9 +1,10 @@
+ class ResNet(nn.Module):
+ 
+-    def __init__(self, num_classes, block, layers):
++    def __init__(self, block, layers, num_classes=1000):
+         self.inplanes = 64
+         super(ResNet, self).__init__()
+-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
++        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
++                               bias=False)
+         self.bn1 = nn.BatchNorm2d(64)
+         self.relu = nn.ReLU(inplace=True)
+         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+@@ -20,15 +21,13 @@
+         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
+ 
+         self.regressionModel = RegressionModel(256)
+-        self.classificationModel = ClassificationModel(256, num_classes=num_classes)
++        self.classificationModel = ClassificationModel(256)
+ 
+         self.anchors = Anchors()
+ 
+         self.regressBoxes = BBoxTransform()
+ 
+         self.clipBoxes = ClipBoxes()
+-        
+-        self.focalLoss = losses.FocalLoss()
+                 
+         for m in self.modules():
+             if isinstance(m, nn.Conv2d):
+@@ -71,13 +70,8 @@
+             if isinstance(layer, nn.BatchNorm2d):
+                 layer.eval()
+ 
+-    def forward(self, inputs):
++    def forward(self, img_batch):
+ 
+-        if self.training:
+-            img_batch, annotations = inputs
+-        else:
+-            img_batch = inputs
+-            
+         x = self.conv1(img_batch)
+         x = self.bn1(x)
+         x = self.relu(x)
+@@ -97,26 +91,15 @@
+         anchors = self.anchors(img_batch)
+ 
+         if self.training:
+-            return self.focalLoss(classification, regression, anchors, annotations)
++            return [classification, regression, anchors]
+         else:
+             transformed_anchors = self.regressBoxes(anchors, regression)
+             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)
+-
++            
+             scores = torch.max(classification, dim=2, keepdim=True)[0]
+-
+-            scores_over_thresh = (scores>0.05)[0, :, 0]
+-
+-            if scores_over_thresh.sum() == 0:
+-                # no boxes to NMS, just return
+-                return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 4)]
+-
+-            classification = classification[:, scores_over_thresh, :]
+-            transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
+-            scores = scores[:, scores_over_thresh, :]
+ 
+             anchors_nms_idx = nms(torch.cat([transformed_anchors, scores], dim=2)[0, :, :], 0.5)
+ 
+             nms_scores, nms_class = classification[0, anchors_nms_idx, :].max(dim=1)
+-
+             return [nms_scores, nms_class, transformed_anchors[0, anchors_nms_idx, :]]
+ 

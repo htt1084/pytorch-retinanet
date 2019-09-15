@@ -82,6 +82,9 @@ def evaluate_coco(dataset, model, threshold=0.05):
         coco_eval.accumulate()
         coco_eval.summarize()
 
+        print("This is mAP:", coco_eval.mAP)
+
         model.train()
 
-        return
+        return coco_eval.mAP
+
